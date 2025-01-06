@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // ou "mysql", "sqlite", selon votre base de données
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId           Int            @id @default(autoincrement())
+  firstName        String
+  lastName         String
+  email            String         @unique
+  phoneNumber      String?
+  profilePicture   String?
+  role             Role
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  spaces           Space[]        @relation("UserSpaces")
+  reservations     Reservation[]  @relation("UserReservations")
+  reviews          Review[]
+  sentMessages     Message[]      @relation("SentMessages")
+  receivedMessages Message[]      @relation("ReceivedMessages")
+  notifications    Notification[]
+}
+
+model Space {
+  spaceId           Int           @id @default(autoincrement())
+  hostId            Int
+  name              String
+  description       String
+  address           String
+  city              String
+  state             String
+  zipCode           String
+  country           String
+  latitude          Float
+  longitude         Float
+  pricePerHour      Float
+  availabilityStart DateTime
+  availabilityEnd   DateTime
+  amenities         Json
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  host              User          @relation("UserSpaces", fields: [hostId], references: [userId])
+  reservations      Reservation[]
+  reviews           Review[]
+  images            SpaceImage[]
+}
+
+model Reservation {
+  reservationId   Int               @id @default(autoincrement())
+  spaceId         Int
+  guestId         Int
+  reservationDate DateTime
+  startTime       DateTime
+  endTime         DateTime
+  status          ReservationStatus
+  totalPrice      Float
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  space           Space             @relation(fields: [spaceId], references: [spaceId])
+  guest           User              @relation("UserReservations", fields: [guestId], references: [userId])
+  payment         Payment?
+  Message         Message[]
+}
+
+model Payment {
+  paymentId       Int           @id @default(autoincrement())
+  reservationId   Int           @unique
+  amount          Float
+  paymentMethod   PaymentMethod
+  paymentStatus   PaymentStatus
+  transactionDate DateTime
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  reservation     Reservation   @relation(fields: [reservationId], references: [reservationId])
+}
+
+model Review {
+  reviewId  Int      @id @default(autoincrement())
+  spaceId   Int
+  guestId   Int
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  space     Space    @relation(fields: [spaceId], references: [spaceId])
+  guest     User     @relation(fields: [guestId], references: [userId])
+}
+
+model Message {
+  messageId      Int          @id @default(autoincrement())
+  senderId       Int
+  receiverId     Int
+  reservationId  Int?
+  messageContent String
+  sentAt         DateTime     @default(now())
+  readStatus     Boolean
+  sender         User         @relation("SentMessages", fields: [senderId], references: [userId])
+  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [userId])
+  reservation    Reservation? @relation(fields: [reservationId], references: [reservationId])
+}
+
+model SpaceImage {
+  imageId    Int      @id @default(autoincrement())
+  spaceId    Int
+  imageUrl   String
+  uploadedAt DateTime @default(now())
+  space      Space    @relation(fields: [spaceId], references: [spaceId])
+}
+
+model Notification {
+  notificationId Int              @id @default(autoincrement())
+  userId         Int
+  message        String
+  type           NotificationType
+  isRead         Boolean
+  createdAt      DateTime         @default(now())
+  user           User             @relation(fields: [userId], references: [userId])
+}
+
+enum Role {
+  host
+  guest
+}
+
+enum ReservationStatus {
+  pending
+  confirmed
+  cancelled
+  completed
+}
+
+enum PaymentMethod {
+  credit_card
+  paypal
+  bank_transfer
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+}
+
+enum NotificationType {
+  reservation
+  payment
+  review
+  general
+}
