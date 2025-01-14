@@ -1,4 +1,5 @@
 "use client";
+import { signup } from '@/app/auth/action/authAction';
 import { Form, Input, Button } from '@/lib/NextUI';
 import React from 'react'
 
@@ -7,28 +8,25 @@ export default function FormAuth({ type }: { type: "signup" | "login" }) {
     const [password, setPassword] = React.useState("");
     const [firstName, setFirstName] = React.useState("");
     const [lastName, setLastName] = React.useState("");
-    const errors = [] as string[];
+    const [errors, setErrors] = React.useState<{ [key: string]: string[] }>({});
 
-    if (password.length < 4) {
-        errors.push("Le mot de passe doit contenir au moins 4 caractères.");
-    }
-    if ((password.match(/[A-Z]/g) || []).length < 1) {
-        errors.push("Le mot de passe doit contenir au moins 1 lettre majuscule.");
-    }
-    if ((password.match(/[^a-z]/gi) || []).length < 1) {
-        errors.push("Le mot de passe doit contenir au moins 1 symbole.");
-    }
-
-    const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        const data = Object.fromEntries(new FormData(e.currentTarget));
-        console.log(data);
+        const data = new FormData(e.currentTarget);
+        const result = await signup(data);
+        console.log(result);
+        setErrors(result.errors);
     };
 
     if (type === "signup") {
         return (
-            <Form className="w-full max-w-xs" validationBehavior="native" onSubmit={onSubmit}>
+            <Form
+                className="w-full max-w-xs"
+                validationBehavior="native"
+                onSubmit={onSubmit}
+                validationErrors={errors}
+            >
                 <div className="flex md:flex-row gap-4">
                     <Input
                         isRequired
@@ -66,14 +64,6 @@ export default function FormAuth({ type }: { type: "signup" | "login" }) {
                 />
                 <Input
                     isRequired
-                    errorMessage={() => (
-                        <ul>
-                            {errors.map((error, i) => (
-                                <li key={i}>{error}</li>
-                            ))}
-                        </ul>
-                    )}
-                    isInvalid={errors.length > 0}
                     label="Mot de passe"
                     labelPlacement="outside"
                     name="password"
